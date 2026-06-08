@@ -48,7 +48,7 @@ Use web search to find current financial data for the ticker. Then return your r
 
 IMPORTANT: roe, pm, eg, rg, div should be decimals (0.15 = 15%). de is debt/equity * 100."""
 
-    try:
+   try:
         res = requests.post(
             "https://api.anthropic.com/v1/messages",
             headers={
@@ -56,23 +56,24 @@ IMPORTANT: roe, pm, eg, rg, div should be decimals (0.15 = 15%). de is debt/equi
                 "x-api-key": ANTHROPIC_KEY,
                 "anthropic-version": "2023-06-01"
             },
-           json={
+            json={
                 "model": "claude-sonnet-4-20250514",
                 "max_tokens": 3000,
                 "system": system_prompt,
-                "messages": [{"role": "user", "content": f"Analyze the stock ticker: {ticker} using your knowledge of current financial data. Provide the most recent data you have available."}]
+                "messages": [{"role": "user", "content": f"Analyze the stock ticker: {ticker}. Use your training knowledge to provide current financial data and analysis."}]
             },
             timeout=60
         )
         data = res.json()
         text = ""
         for block in data.get("content", []):
-            if block.get("type") == "text":
-                text += block["text"]
+            if isinstance(block, dict) and block.get("type") == "text":
+                text += block.get("text", "")
+        if not text:
+            text = str(data)
         return jsonify({"result": text})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
