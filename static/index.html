@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockLens — AI Investment Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{--bg:#0c0f0a;--bg2:#141810;--bg3:#1c2118;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--text:#eeedea;--text2:#9a9b96;--text3:#5c5d59;--green:#4ade80;--green-dim:rgba(74,222,128,0.12);--green-b:rgba(74,222,128,0.3);--amber:#fbbf24;--amber-dim:rgba(251,191,36,0.12);--red:#f87171;--red-dim:rgba(248,113,113,0.12);--accent:#a3e635;--accent-dim:rgba(163,230,53,0.08);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+.app{max-width:960px;margin:0 auto;padding:2rem 1.5rem 4rem;}
+header{margin-bottom:2.5rem;}
+.logo{font-family:'DM Serif Display',serif;font-size:32px;letter-spacing:-0.5px;}
+.logo span{color:var(--accent);}
+.tagline{font-size:13px;color:var(--text3);margin-top:4px;}
+.search-bar{display:flex;gap:10px;margin-bottom:2rem;}
+.search-bar input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;padding:0 1.25rem;height:54px;outline:none;transition:border-color 0.2s;text-transform:uppercase;}
+.search-bar input:focus{border-color:var(--accent);}
+.search-bar input::placeholder{color:var(--text3);text-transform:none;}
+.btn{background:var(--accent);color:#0c0f0a;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;padding:0 2rem;height:54px;cursor:pointer;transition:opacity 0.2s;}
+.btn:hover{opacity:0.88;}
+.btn:disabled{opacity:0.4;cursor:default;}
+.error-box{background:var(--red-dim);border:1px solid rgba(248,113,113,0.3);border-radius:10px;padding:0.875rem 1rem;color:var(--red);font-size:14px;margin-bottom:1.5rem;line-height:1.6;}
+.loading{text-align:center;padding:4rem 2rem;color:var(--text2);}
+.spinner{width:36px;height:36px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1.25rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.grade{display:inline-flex;align-items:center;justify-content:center;width:54px;height:54px;border-radius:12px;font-family:'DM Serif Display',serif;font-size:30px;}
+.grade-A{background:rgba(74,222,128,0.15);color:var(--green);border:1px solid var(--green-b);}
+.grade-B{background:rgba(163,230,53,0.12);color:var(--accent);border:1px solid rgba(163,230,53,0.3);}
+.grade-C{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(251,191,36,0.3);}
+.grade-D{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,0.3);}
+.company-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);}
+.company-name{font-family:'DM Serif Display',serif;font-size:30px;letter-spacing:-0.5px;margin-bottom:4px;}
+.company-meta{font-size:13px;color:var(--text2);}
+.verdict-pill{display:flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:12px 18px;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.5rem;}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:0.875rem 1rem;}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;}
+.stat-val{font-size:20px;font-weight:500;}
+.pos{color:var(--green);}
+.neg{color:var(--red);}
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;}
+.card-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;font-weight:600;margin-bottom:1rem;}
+.ai-content{font-size:14px;color:var(--text2);line-height:1.85;}
+.ai-content h2{font-size:16px;font-weight:600;color:var(--text);margin:1.25rem 0 0.5rem;padding-bottom:0.4rem;border-bottom:1px solid var(--border);}
+.ai-content h2:first-child{margin-top:0;}
+.ai-content h3{font-size:14px;font-weight:600;color:var(--accent);margin:1rem 0 0.35rem;}
+.ai-content ul{padding-left:1.25rem;margin:0.35rem 0 0.75rem;}
+.ai-content li{margin-bottom:0.35rem;}
+.ai-content p{margin-bottom:0.65rem;}
+.ai-content strong{color:var(--text);font-weight:600;}
+.investor-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:1.5rem;}
+.inv-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:1rem 1.125rem;cursor:pointer;transition:border-color 0.2s;}
+.inv-card:hover{border-color:var(--border2);}
+.inv-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.bar-track{background:var(--bg2);border-radius:99px;height:5px;width:100%;overflow:hidden;margin-bottom:10px;}
+.bar-fill{height:100%;border-radius:99px;}
+.reason-list{display:none;font-size:12px;color:var(--text2);line-height:1.7;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;}
+.reason-list.open{display:block;}
+.reason-list li{list-style:none;padding:2px 0;}
+.reason-list li::before{content:'→ ';color:var(--text3);}
+.toggle-hint{font-size:11px;color:var(--text3);text-align:center;margin-top:8px;}
+.tag{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;font-weight:500;}
+.tag-green{background:var(--green-dim);color:var(--green);}
+.tag-amber{background:var(--amber-dim);color:var(--amber);}
+.tag-red{background:var(--red-dim);color:var(--red);}
+.disclaimer{font-size:11px;color:var(--text3);line-height:1.6;margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fade-in{animation:fadeIn 0.45s ease forwards;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">Stock<span>Lens</span></div>
+    <div class="tagline">AI Investment Committee — Buffett · Graham · Lynch · Dalio</div>
+  </header>
+  <div class="search-bar">
+    <input type="text" id="tickerInput" placeholder="Enter any stock ticker — AAPL, TSLA, NVDA, MSFT..." maxlength="10">
+    <button class="btn" id="analyzeBtn">Analyze ↗</button>
+  </div>
+  <div id="errorBox" class="error-box" style="display:none;"></div>
+  <div id="loadingBox" class="loading" style="display:none;">
+    <div class="spinner"></div>
+    <div id="loadingMsg" style="font-size:14px;">Searching live market data...</div>
+    <div style="font-size:12px;color:var(--text3);margin-top:6px;">The Investment Committee is reviewing the numbers (~20 seconds)</div>
+  </div>
+  <div id="results"></div>
+</div>
+<script>
+const INV_COLORS=['#a3e635','#4ade80','#60a5fa','#fb923c'];
+function gradeFromPct(p){return p>=0.75?'A':p>=0.55?'B':p>=0.40?'C':'D';}
+function verdictText(g){return{A:'Strong Buy',B:'Buy',C:'Hold',D:'Avoid'}[g];}
+function verdictColor(g){return{A:'var(--green)',B:'var(--accent)',C:'var(--amber)',D:'var(--red)'}[g];}
+function fmt(n,d=1){if(n==null||isNaN(n)||n==='N/A')return'N/A';return Number(n).toFixed(d);}
+function fmtMC(mc){if(!mc||mc==='N/A')return'N/A';mc=Number(mc);if(mc>=1e12)return'$'+(mc/1e12).toFixed(2)+'T';if(mc>=1e9)return'$'+(mc/1e9).toFixed(1)+'B';return'$'+(mc/1e6).toFixed(0)+'M';}
+function setMsg(t){const e=document.getElementById('loadingMsg');if(e)e.textContent=t;}
+
+function scoreInvestors(info){
+  const roe=info.roe||0,de=info.de||999,pm=info.pm||0,pe=info.pe||999;
+  const eg=info.eg||0,peg=info.peg||999,rg=info.rg||0,mc=info.marketCap||0;
+  const pb=info.pb||999,cr=info.cr||0,eps=info.eps||0,beta=info.beta||1,div=info.div||0;
+  const B=[[roe>0.15,'ROE '+(roe*100).toFixed(1)+'% (wants >15%)'],[de<50,'Debt/Equity '+fmt(de,0)+' (wants <50)'],[pm>0.10,'Profit margin '+(pm*100).toFixed(1)+'% (wants >10%)'],[pe<25&&pe>0,'P/E '+fmt(pe)+' (wants <25)']];
+  const L=[[eg>0.10,'Earnings growth '+(eg*100).toFixed(1)+'% (wants >10%)'],[peg<1.5&&peg>0,'PEG ratio '+fmt(peg,2)+' (wants <1.5)'],[rg>0.08,'Revenue growth '+(rg*100).toFixed(1)+'% (wants >8%)'],[mc<10e9,mc<10e9?'Small/mid-cap — Lynch loves undiscovered gems':'Large-cap limits further upside']];
+  const G=[[pe<15&&pe>0,'P/E '+fmt(pe)+' (hard limit 15)'],[pb<1.5&&pb>0,'P/B '+fmt(pb,2)+' (wants <1.5)'],[cr>2,'Current ratio '+fmt(cr,1)+' (needs >2)'],[eps>0,'EPS $'+fmt(eps,2)+' (must be positive)']];
+  const D=[[beta>0.5&&beta<1.5,'Beta '+fmt(beta,2)+' — balanced market exposure'],[div>0.01,'Dividend yield '+(div*100).toFixed(2)+'%'],[mc>5e9,mc>5e9?'Large stable company — fits macro portfolio':'Small cap = higher systemic risk'],[pm>0.05,'Profit margin positive — business is viable']];
+  function calc(rules){return{score:rules.filter(r=>r[0]).length,max:rules.length,reasons:rules.map(r=>r[1])};}
+  return[{name:'Warren Buffett',style:'Value investing',...calc(B)},{name:'Peter Lynch',style:'Growth investing',...calc(L)},{name:'Benjamin Graham',style:'Deep value',...calc(G)},{name:'Ray Dalio',style:'Macro / diversification',...calc(D)}];
+}
+
+function renderMd(md){
+  return md
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^\* (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>\n?)+/g,m=>'<ul>'+m+'</ul>')
+    .replace(/\n{2,}/g,'</p><p>')
+    .replace(/^(?!<)/,'<p>')+'</p>';
+}
+
+function toggleReasons(card){
+  const list=card.querySelector('.reason-list'),hint=card.querySelector('.toggle-hint');
+  list.classList.toggle('open');
+  hint.textContent=list.classList.contains('open')?'tap to hide':'tap to see reasoning';
+}
+
+function renderResults(ticker,info,analysis,scores,grade){
+  const total=scores.reduce((a,s)=>a+s.score,0),tmax=scores.reduce((a,s)=>a+s.max,0);
+  const pct=Math.round(total/tmax*100),verdict=verdictText(grade),vc=verdictColor(grade);
+
+  let h='<div class="fade-in">';
+  h+='<div class="company-header"><div><div class="company-name">'+(info.companyName||ticker)+'</div>';
+  h+='<div class="company-meta">'+ticker+' · '+(info.sector||'N/A')+' · '+(info.industry||'N/A')+'</div></div>';
+  h+='<div class="verdict-pill"><div class="grade grade-'+grade+'">'+grade+'</div>';
+  h+='<div><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Verdict</div>';
+  h+='<div style="font-size:19px;font-weight:600;color:'+vc+'">'+verdict+'</div>';
+  h+='<div style="font-size:11px;color:var(--text3)">'+pct+'% overall score</div></div></div></div>';
+
+  h+='<div class="stat-grid">';
+  h+='<div class="stat-card"><div class="stat-label">Price</div><div class="stat-val">'+(info.currentPrice?'$'+info.currentPrice:'N/A')+'</div></div>';
+  h+='<div class="stat-card"><div class="stat-label">5yr return</div><div class="stat-val '+(( info.return5yr||0)>=0?'pos':'neg')+'">'+(info.return5yr!=null?(info.return5yr>0?'+':'')+info.return5yr+'%':'N/A')+'</div></div>';
+  h+='<div class="stat-card"><div class="stat-label">Market cap</div><div class="stat-val">'+fmtMC(info.marketCap)+'</div></div>';
+  h+='<div class="stat-card"><div class="stat-label">P/E ratio</div><div class="stat-val">'+fmt(info.pe)+'</div></div>';
+  h+='<div class="stat-card"><div class="stat-label">ROE</div><div class="stat-val">'+(info.roe!=null?(info.roe*100).toFixed(1)+'%':'N/A')+'</div></div>';
+  h+='<div class="stat-card"><div class="stat-label">Profit margin</div><div class="stat-val">'+(info.pm!=null?(info.pm*100).toFixed(1)+'%':'N/A')+'</div></div>';
+  h+='<div class="stat-card"><div class="stat-label">Debt/Equity</div><div class="stat-val">'+fmt(info.de,1)+'</div></div>';
+  h+='<div class="stat-card"><div class="stat-label">Beta</div><div class="stat-val">'+fmt(info.beta,2)+'</div></div>';
+  h+='<div class="stat-card"><div class="stat-label">EPS</div><div class="stat-val">'+(info.eps!=null?'$'+fmt(info.eps,2):'N/A')+'</div></div>';
+  h+='<div class="stat-card"><div class="stat-label">PEG ratio</div><div class="stat-val">'+fmt(info.peg,2)+'</div></div>';
+  h+='<div class="stat-card"><div class="stat-label">52w high</div><div class="stat-val">'+(info.high52w?'$'+info.high52w:'N/A')+'</div></div>';
+  h+='<div class="stat-card"><div class="stat-label">Dividend</div><div class="stat-val">'+(info.div?(info.div*100).toFixed(2)+'%':'None')+'</div></div>';
+  h+='</div>';
+
+  h+='<div class="card"><div class="card-title">Investor framework radar</div>';
+  h+='<div style="position:relative;height:220px;max-width:400px;margin:0 auto"><canvas id="radarChart"></canvas></div></div>';
+
+  h+='<div class="card"><div class="card-title">Investment Committee Analysis</div>';
+  h+='<div class="ai-content">'+renderMd(analysis)+'</div></div>';
+
+  h+='<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;font-weight:600;margin-bottom:0.875rem;">Investor scorecards — tap to expand</div>';
+  h+='<div class="investor-grid">';
+  scores.forEach((s,i)=>{
+    const sp=Math.round(s.score/s.max*100),g=gradeFromPct(s.score/s.max);
+    h+='<div class="inv-card" onclick="toggleReasons(this)">';
+    h+='<div class="inv-top"><div><div style="font-size:14px;font-weight:500">'+s.name+'</div><div style="font-size:11px;color:var(--text3)">'+s.style+'</div></div>';
+    h+='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px;font-weight:600;color:'+INV_COLORS[i]+'">'+s.score+'/'+s.max+'</span>';
+    h+='<span class="tag '+(g==='A'||g==='B'?'tag-green':g==='C'?'tag-amber':'tag-red')+'">'+g+'</span></div></div>';
+    h+='<div class="bar-track"><div class="bar-fill" style="width:'+sp+'%;background:'+INV_COLORS[i]+'"></div></div>';
+    h+='<ul class="reason-list">'+s.reasons.map(r=>'<li>'+r+'</li>').join('')+'</ul>';
+    h+='<div class="toggle-hint">tap to see reasoning</div></div>';
+  });
+  h+='</div>';
+  h+='<div class="disclaimer">For educational purposes only. Not financial advice. Past performance does not indicate future results. Always consult a licensed financial advisor before investing.</div>';
+  h+='</div>';
+
+  document.getElementById('results').innerHTML=h;
+  setTimeout(()=>{
+    const rc=document.getElementById('radarChart');
+    if(rc){
+      new Chart(rc,{type:'radar',data:{labels:scores.map(s=>s.name.split(' ')[0]),datasets:[{data:scores.map(s=>Math.round(s.score/s.max*100)),borderColor:'#a3e635',backgroundColor:'rgba(163,230,53,0.1)',borderWidth:2,pointBackgroundColor:'#a3e635',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{display:false},grid:{color:'rgba(255,255,255,0.07)'},angleLines:{color:'rgba(255,255,255,0.07)'},pointLabels:{font:{size:12},color:'#9a9b96'}}}}});
+    }
+  },100);
+}
+
+async function runAnalysis(){
+  const ticker=document.getElementById('tickerInput').value.trim().toUpperCase();
+  if(!ticker)return;
+  document.getElementById('errorBox').style.display='none';
+  document.getElementById('results').innerHTML='';
+  document.getElementById('loadingBox').style.display='block';
+  document.getElementById('analyzeBtn').disabled=true;
+  setMsg('Searching live market data for '+ticker+'...');
+
+  try{
+    const res=await fetch('/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticker})});
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+
+    setMsg('Building your report...');
+    const text=data.result;
+    const jm=text.match(/```json\s*([\s\S]*?)```/);
+    let info={};
+    if(jm){try{info=JSON.parse(jm[1]);}catch(e){}}
+    const am=text.match(/---ANALYSIS---\s*([\s\S]*)/);
+    const analysis=am?am[1].trim():text;
+    const scores=scoreInvestors(info);
+    const total=scores.reduce((a,s)=>a+s.score,0),tmax=scores.reduce((a,s)=>a+s.max,0);
+    const grade=gradeFromPct(total/tmax);
+
+    document.getElementById('loadingBox').style.display='none';
+    renderResults(ticker,info,analysis,scores,grade);
+  }catch(e){
+    document.getElementById('loadingBox').style.display='none';
+    document.getElementById('errorBox').textContent=e.message||'Something went wrong. Please try again.';
+    document.getElementById('errorBox').style.display='block';
+  }finally{
+    document.getElementById('analyzeBtn').disabled=false;
+  }
+}
+
+document.getElementById('analyzeBtn').addEventListener('click',runAnalysis);
+document.getElementById('tickerInput').addEventListener('keydown',e=>{if(e.key==='Enter')runAnalysis();});
+</script>
+</body>
+</html>
