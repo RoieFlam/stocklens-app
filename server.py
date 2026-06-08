@@ -56,12 +56,11 @@ IMPORTANT: roe, pm, eg, rg, div should be decimals (0.15 = 15%). de is debt/equi
                 "x-api-key": ANTHROPIC_KEY,
                 "anthropic-version": "2023-06-01"
             },
-            json={
+           json={
                 "model": "claude-sonnet-4-20250514",
                 "max_tokens": 3000,
                 "system": system_prompt,
-                "tools": [{"type": "web_search_20250305", "name": "web_search"}],
-                "messages": [{"role": "user", "content": f"Analyze the stock ticker: {ticker}"}]
+                "messages": [{"role": "user", "content": f"Analyze the stock ticker: {ticker} using your knowledge of current financial data. Provide the most recent data you have available."}]
             },
             timeout=60
         )
