@@ -17,12 +17,12 @@ def fmp_get(url):
 def fetch_stock_data(ticker):
     base = "https://financialmodelingprep.com/api/v3"
 
-    profile    = fmp_get(f"{base}/profile/{ticker}?apikey={FMP_KEY}")
-    ratios     = fmp_get(f"{base}/ratios-ttm/{ticker}?apikey={FMP_KEY}")
+   profile    = fmp_get(f"{base}/quote/{ticker}?apikey={FMP_KEY}")
+    ratios     = fmp_get(f"{base}/ratios/{ticker}?limit=1&apikey={FMP_KEY}")
     growth     = fmp_get(f"{base}/financial-growth/{ticker}?limit=1&apikey={FMP_KEY}")
-    history    = fmp_get(f"{base}/historical-price-full/{ticker}?from=2021-01-01&to=2026-06-01&apikey={FMP_KEY}")
+    history    = fmp_get(f"{base}/historical-price-full/{ticker}?serietype=line&apikey={FMP_KEY}")
 
-    p = profile[0] if profile and len(profile) > 0 else {}
+    p = profile[0] if profile and isinstance(profile, list) and len(profile) > 0 else {}
     r = ratios[0]  if ratios  and len(ratios)  > 0 else {}
     g = growth[0]  if growth  and len(growth)  > 0 else {}
 
