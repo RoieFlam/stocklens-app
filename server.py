@@ -50,7 +50,7 @@ IMPORTANT: roe, pm, eg, rg, div are decimals (0.15=15%). de is debt/equity x100.
 
     try:
         payload = json.dumps({
-            "model": "claude-sonnet-4-6",
+            "model": "claude-haiku-4-5-20251001",
             "max_tokens": 3000,
             "system": system_prompt,
             "messages": [{"role": "user", "content": "Analyze the stock ticker: " + ticker}]
