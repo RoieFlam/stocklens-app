@@ -5,6 +5,58 @@ import urllib.request
 
 app = Flask(__name__, static_folder="static")
 ANTHROPIC_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+FMP_KEY = os.environ.get("FMP_API_KEY", "")
+
+def fmp_get(url):
+    try:
+        with urllib.request.urlopen(url, timeout=10) as r:
+            return json.loads(r.read().decode())
+    except:
+        return None
+
+def fetch_stock_data(ticker):
+    base = "https://financialmodelingprep.com/api/v3"
+
+    profile    = fmp_get(f"{base}/profile/{ticker}?apikey={FMP_KEY}")
+    ratios     = fmp_get(f"{base}/ratios-ttm/{ticker}?apikey={FMP_KEY}")
+    growth     = fmp_get(f"{base}/financial-growth/{ticker}?limit=1&apikey={FMP_KEY}")
+    history    = fmp_get(f"{base}/historical-price-full/{ticker}?from=2021-01-01&to=2026-06-01&apikey={FMP_KEY}")
+
+    p = profile[0] if profile and len(profile) > 0 else {}
+    r = ratios[0]  if ratios  and len(ratios)  > 0 else {}
+    g = growth[0]  if growth  and len(growth)  > 0 else {}
+
+    # 5 year return from historical prices
+    return5yr = 0
+    if history and "historical" in history:
+        prices = history["historical"]
+        if len(prices) >= 2:
+            newest = prices[0]["close"]
+            oldest = prices[-1]["close"]
+            return5yr = round((newest - oldest) / oldest * 100, 1)
+
+    return {
+        "companyName": p.get("companyName", ticker),
+        "sector":      p.get("sector", "N/A"),
+        "industry":    p.get("industry", "N/A"),
+        "currentPrice": p.get("price", 0),
+        "marketCap":   p.get("mktCap", 0),
+        "high52w":     p.get("range", "0-0").split("-")[-1] if p.get("range") else 0,
+        "low52w":      p.get("range", "0-0").split("-")[0]  if p.get("range") else 0,
+        "beta":        p.get("beta", 0),
+        "pe":          r.get("peRatioTTM", 0),
+        "pb":          r.get("priceToBookRatioTTM", 0),
+        "roe":         r.get("returnOnEquityTTM", 0),
+        "pm":          r.get("netProfitMarginTTM", 0),
+        "de":          r.get("debtEquityRatioTTM", 0),
+        "cr":          r.get("currentRatioTTM", 0),
+        "div":         r.get("dividendYielTTM", 0),
+        "eps":         r.get("epsTTM", 0) if r.get("epsTTM") else p.get("eps", 0),
+        "peg":         r.get("priceEarningsToGrowthRatioTTM", 0),
+        "eg":          g.get("epsgrowth", 0),
+        "rg":          g.get("revenueGrowth", 0),
+        "return5yr":   return5yr,
+    }
 
 @app.route("/")
 def index():
@@ -16,9 +68,15 @@ def analyze():
     if not ticker:
         return jsonify({"error": "No ticker provided"}), 400
     if not ANTHROPIC_KEY:
-        return jsonify({"error": "No API key configured"}), 500
+        return jsonify({"error": "No Anthropic API key configured"}), 500
 
-    system_prompt = """You are an elite Investment Committee comprising Warren Buffett, Benjamin Graham, and Peter Lynch. Analyze the stock ticker using your knowledge and return your response in EXACTLY this format:
+    # Fetch live data
+    stock = {}
+    if FMP_KEY:
+        stock = fetch_stock_data(ticker)
+
+    system_prompt = """You are an elite Investment Committee comprising Warren Buffett, Benjamin Graham, and Peter Lynch.
+You will be given live financial data for a stock. Analyze it and return your response in EXACTLY this format:
 
 ```json
 {"companyName":"","sector":"","industry":"","currentPrice":0,"marketCap":0,"pe":0,"pb":0,"roe":0,"pm":0,"de":0,"cr":0,"eg":0,"rg":0,"div":0,"beta":0,"eps":0,"peg":0,"high52w":0,"low52w":0,"return5yr":0}
@@ -27,7 +85,7 @@ def analyze():
 ---ANALYSIS---
 
 ## Executive Summary
-2-3 sentence ruthless synthesis.
+2-3 sentence ruthless synthesis based on the numbers provided.
 
 ## 🏰 The Buffett View: Moat & Profitability
 * **ROE & Margins:** High and consistent? Pricing power?
@@ -46,14 +104,21 @@ def analyze():
 * **The Bear Case:** Biggest hidden risk.
 * **Final Rating:** [Strong Buy / Watchlist / Hold / Avoid]
 
-IMPORTANT: roe, pm, eg, rg, div are decimals (0.15=15%). de is debt/equity x100."""
+IMPORTANT: Use the exact numbers provided. roe, pm, eg, rg, div are decimals (0.15=15%). de is debt/equity x100.
+For the JSON block, use the exact live data provided — do not make up numbers."""
+
+    user_message = f"""Analyze {ticker} using this live financial data:
+
+{json.dumps(stock, indent=2)}
+
+Fill in the JSON block with these exact values, then write the full Investment Committee analysis based on these numbers."""
 
     try:
         payload = json.dumps({
             "model": "claude-haiku-4-5-20251001",
             "max_tokens": 3000,
             "system": system_prompt,
-            "messages": [{"role": "user", "content": "Analyze the stock ticker: " + ticker}]
+            "messages": [{"role": "user", "content": user_message}]
         }).encode()
 
         req = urllib.request.Request(
