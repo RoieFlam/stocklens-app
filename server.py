@@ -18,8 +18,7 @@ def analyze():
     if not ANTHROPIC_KEY:
         return jsonify({"error": "No API key configured"}), 500
 
-    system_prompt = """You are an elite Investment Committee comprising Warren Buffett, Benjamin Graham, and Peter Lynch.
-Analyze the stock ticker using your training knowledge and return your response in EXACTLY this format:
+    system_prompt = """You are an elite Investment Committee comprising Warren Buffett, Benjamin Graham, and Peter Lynch. Analyze the stock ticker using your knowledge and return your response in EXACTLY this format:
 
 ```json
 {"companyName":"","sector":"","industry":"","currentPrice":0,"marketCap":0,"pe":0,"pb":0,"roe":0,"pm":0,"de":0,"cr":0,"eg":0,"rg":0,"div":0,"beta":0,"eps":0,"peg":0,"high52w":0,"low52w":0,"return5yr":0}
@@ -50,11 +49,11 @@ Analyze the stock ticker using your training knowledge and return your response 
 IMPORTANT: roe, pm, eg, rg, div are decimals (0.15=15%). de is debt/equity x100."""
 
     try:
-       payload = json.dumps({
+        payload = json.dumps({
             "model": "claude-sonnet-4-6",
             "max_tokens": 3000,
             "system": system_prompt,
-            "messages": [{"role": "user", "content": f"Analyze the stock ticker: {ticker}"}]
+            "messages": [{"role": "user", "content": "Analyze the stock ticker: " + ticker}]
         }).encode()
 
         req = urllib.request.Request(
@@ -66,6 +65,7 @@ IMPORTANT: roe, pm, eg, rg, div are decimals (0.15=15%). de is debt/equity x100.
                 "anthropic-version": "2023-06-01"
             }
         )
+
         with urllib.request.urlopen(req, timeout=60) as res:
             data = json.loads(res.read().decode())
 
@@ -75,7 +75,7 @@ IMPORTANT: roe, pm, eg, rg, div are decimals (0.15=15%). de is debt/equity x100.
                 text += block.get("text", "")
 
         if not text:
-            return jsonify({"error": "Empty response: " + str(data)}), 500
+            return jsonify({"error": "Empty response from API"}), 500
 
         return jsonify({"result": text})
 
