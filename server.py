@@ -50,12 +50,11 @@ Analyze the stock ticker using your training knowledge and return your response 
 IMPORTANT: roe, pm, eg, rg, div are decimals (0.15=15%). de is debt/equity x100."""
 
     try:
-        payload = json.dumps({
+       payload = json.dumps({
             "model": "claude-sonnet-4-6",
             "max_tokens": 3000,
             "system": system_prompt,
-            "tools": [{"type": "web_search_20250305", "name": "web_search"}],
-            "messages": [{"role": "user", "content": f"Search for current financial data for {ticker} stock including current price, 5-year return, PE ratio, ROE, profit margin, debt/equity, EPS, beta, dividend yield, 52-week high/low, market cap. Then provide the full Investment Committee analysis."}]
+            "messages": [{"role": "user", "content": f"Analyze the stock ticker: {ticker}"}]
         }).encode()
 
         req = urllib.request.Request(
